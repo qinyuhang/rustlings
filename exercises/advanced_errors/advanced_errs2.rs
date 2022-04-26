@@ -16,7 +16,6 @@
 // 4. Complete the partial implementation of `Display` for
 //    `ParseClimateError`.
 
-// I AM NOT DONE
 
 use std::error::Error;
 use std::fmt::{self, Display, Formatter};
@@ -34,6 +33,8 @@ enum ParseClimateError {
     ParseFloat(ParseFloatError),
 }
 
+impl Error for ParseClimateError {}
+
 // This `From` implementation allows the `?` operator to work on
 // `ParseIntError` values.
 impl From<ParseIntError> for ParseClimateError {
@@ -47,6 +48,7 @@ impl From<ParseIntError> for ParseClimateError {
 impl From<ParseFloatError> for ParseClimateError {
     fn from(e: ParseFloatError) -> Self {
         // TODO: Complete this function
+        ParseClimateError::ParseFloat(e)
     }
 }
 
@@ -64,6 +66,10 @@ impl Display for ParseClimateError {
         match self {
             NoCity => write!(f, "no city name"),
             ParseFloat(e) => write!(f, "error parsing temperature: {}", e),
+            ParseInt(e) => write!(f, "error parsing year: {}", e),
+            Empty => write!(f, "empty input"),
+            BadLen => write!(f, "incorrect number of fields"),
+            _ => write!(f, ""),
         }
     }
 }
@@ -89,13 +95,30 @@ impl FromStr for Climate {
     // cases.
     fn from_str(s: &str) -> Result<Self, Self::Err> {
         let v: Vec<_> = s.split(',').collect();
-        let (city, year, temp) = match &v[..] {
-            [city, year, temp] => (city.to_string(), year, temp),
-            _ => return Err(ParseClimateError::BadLen),
-        };
-        let year: u32 = year.parse()?;
-        let temp: f32 = temp.parse()?;
-        Ok(Climate { city, year, temp })
+        match v[..] {
+            [city, year, temp] => (!city.is_empty())
+                .then(|| city)
+                .ok_or(ParseClimateError::NoCity)
+                .and_then(|city| {
+                    year.parse()
+                        .map_err(|e| ParseClimateError::ParseInt(e))
+                        .and_then(|year| Ok((city, year)))
+                })
+                .and_then(|(city, year)| {
+                    temp.parse()
+                        .map_err(|e| ParseClimateError::ParseFloat(e))
+                        .and_then(|temp| Ok((city, year, temp)))
+                })
+                .and_then(|(city, year, temp)| {
+                    Ok(Climate {
+                        city: city.to_string(),
+                        year,
+                        temp,
+                    })
+                }),
+            [_] => return Err(ParseClimateError::Empty),
+            _ => Err(ParseClimateError::BadLen),
+        }
     }
 }
 

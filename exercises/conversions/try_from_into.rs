@@ -21,7 +21,6 @@ enum IntoColorError {
     IntConversion,
 }
 
-// I AM NOT DONE
 
 // Your task is to complete this implementation
 // and return an Ok result of inner type Color.
@@ -32,10 +31,22 @@ enum IntoColorError {
 // but the slice implementation needs to check the slice length!
 // Also note that correct RGB color values must be integers in the 0..=255 range.
 
+fn is_valid_u8(n: i16) -> bool {
+    n >= u8::MIN as i16 && n <= u8::MAX as i16
+}
 // Tuple implementation
 impl TryFrom<(i16, i16, i16)> for Color {
     type Error = IntoColorError;
     fn try_from(tuple: (i16, i16, i16)) -> Result<Self, Self::Error> {
+        match tuple {
+            (r, g, b) if is_valid_u8(r) && is_valid_u8(g) && is_valid_u8(b) => Ok(Color {
+                red: r as u8,
+                green: g as u8,
+                blue: b as u8,
+            }),
+            (r, g, b) => Err(IntoColorError::IntConversion),
+            _ => Err(IntoColorError::BadLen),
+        }
     }
 }
 
@@ -43,6 +54,15 @@ impl TryFrom<(i16, i16, i16)> for Color {
 impl TryFrom<[i16; 3]> for Color {
     type Error = IntoColorError;
     fn try_from(arr: [i16; 3]) -> Result<Self, Self::Error> {
+        match arr {
+            [r, g, b] if is_valid_u8(r) && is_valid_u8(g) && is_valid_u8(b) => Ok(Color {
+                red: r as u8,
+                green: g as u8,
+                blue: b as u8,
+            }),
+            [r, g, b] => Err(IntoColorError::IntConversion),
+            _ => Err(IntoColorError::BadLen),
+        }
     }
 }
 
@@ -50,6 +70,15 @@ impl TryFrom<[i16; 3]> for Color {
 impl TryFrom<&[i16]> for Color {
     type Error = IntoColorError;
     fn try_from(slice: &[i16]) -> Result<Self, Self::Error> {
+        match slice[..] {
+            [r, g, b] if is_valid_u8(r) && is_valid_u8(g) && is_valid_u8(b) => Ok(Color {
+                red: r as u8,
+                green: g as u8,
+                blue: b as u8,
+            }),
+            [r, g, b] => Err(IntoColorError::IntConversion),
+            _ => Err(IntoColorError::BadLen),
+        }
     }
 }
 
